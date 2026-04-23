@@ -1,0 +1,107 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+import json
+
+# --- APP CONFIGURATION ---
+st.set_page_config(page_title="Prompt Architect", layout="wide")
+
+# --- INITIALIZE SESSION STATE (Mock Database) ---
+if 'prompt_library' not in st.session_state:
+    st.session_state.prompt_library = []
+
+# --- HELPER FUNCTIONS ---
+def save_prompt(name, role, task, context, thinking, version_type):
+    # Apply structural best practices from your documents
+    structured_content = f"""
+    ### ROLE
+    {role}
+    
+    ### TASK
+    {task}
+    
+    ### CONTEXT
+    <context>
+    {context}
+    </context>
+    """
+    if thinking:
+        structured_content = "First, think through the problem step-by-step in a hidden block.\n" + structured_content
+
+    new_entry = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "name": name,
+        "version": f"v{len([p for p in st.session_state.prompt_library if p['name'] == name]) + 1}.0",
+        "content": structured_content,
+        "type": version_type
+    }
+    st.session_state.prompt_library.insert(0, new_entry)
+
+# --- SIDEBAR: NAVIGATION & GOVERNANCE ---
+st.sidebar.title("🏛️ Prompt Architect")
+menu = st.sidebar.radio("Navigate", ["Design Studio", "Enterprise Library", "Security Audit"])
+
+# --- MODULE 1: DESIGN STUDIO ---
+if menu == "Design Studio":
+    st.header("🎨 Prompt Design Studio")
+    st.info("Architecture for Thought: Use the fields below to build high-precision prompts.")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        p_name = st.text_input("Prompt Name", placeholder="e.g., Legal Summarizer")
+        p_role = st.text_area("System Role", placeholder="Act as a senior legal analyst...")
+        p_task = st.text_area("The Task", placeholder="Summarize the following contract points...")
+        
+    with col2:
+        p_context = st.text_area("Grounding Context", placeholder="Insert data or background info here...")
+        st.write("---")
+        st.subheader("Advanced Architecture")
+        p_thinking = st.checkbox("Force Chain-of-Thought (Reduces Hallucinations)", value=True)
+        p_type = st.selectbox("Tag Category", ["Production", "Staging", "Experiment"])
+
+    if st.button("🚀 Build & Version Prompt"):
+        if p_name and p_task:
+            save_prompt(p_name, p_role, p_task, p_context, p_thinking, p_type)
+            st.success(f"Prompt '{p_name}' saved to library!")
+        else:
+            st.error("Please provide at least a Name and Task.")
+
+# --- MODULE 2: ENTERPRISE LIBRARY ---
+elif menu == "Enterprise Library":
+    st.header("📚 Enterprise Prompt Ledger")
+    
+    if not st.session_state.prompt_library:
+        st.warning("The library is currently empty. Design a prompt to see it here.")
+    else:
+        df = pd.DataFrame(st.session_state.prompt_library)
+        st.dataframe(df[["timestamp", "name", "version", "type"]], use_container_width=True)
+        
+        selected_prompt = st.selectbox("Select a prompt to view/copy", df['name'].unique())
+        versions = [p for p in st.session_state.prompt_library if p['name'] == selected_prompt]
+        
+        for v in versions:
+            with st.expander(f"{v['name']} - {v['version']} ({v['timestamp']})"):
+                st.code(v['content'], language="markdown")
+                st.button(f"Deploy {v['version']} to API", key=f"btn_{v['version']}")
+
+# --- MODULE 3: SECURITY AUDIT ---
+elif menu == "Security Audit":
+    st.header("🛡️ Injection Shield & Analysis")
+    test_input = st.text_area("Test your prompt for vulnerabilities:")
+    if st.button("Scan for Risks"):
+        if "ignore all previous instructions" in test_input.lower():
+            st.error("🚨 CRITICAL: Potential Prompt Injection detected (Instruction Override).")
+        else:
+            st.success("✅ No common injection patterns found.")
+    
+    st.write("### Secure Pattern Guidelines (AWS/OpenAI)")
+    st.markdown("""
+    - **Use XML Tags:** Always wrap user input in `<input>` tags.
+    - **Apply Delimiters:** Use `###` or `\"\"\"` to separate instructions.
+    - **Negative Constraints:** Avoid "Don't do X". Instead, use "Always do Y".
+    """)
+
+# --- FOOTER ---
+st.sidebar.markdown("---")
+st.sidebar.caption("Powered by NotebookLM Synthesis | 2025")
