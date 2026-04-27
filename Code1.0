@@ -101,7 +101,3 @@ elif menu == "Security Audit":
     - **Apply Delimiters:** Use `###` or `\"\"\"` to separate instructions.
     - **Negative Constraints:** Avoid "Don't do X". Instead, use "Always do Y".
     """)
-
-# --- FOOTER ---
-st.sidebar.markdown("---")
-st.sidebar.caption("Powered by NotebookLM Synthesis | 2025")
